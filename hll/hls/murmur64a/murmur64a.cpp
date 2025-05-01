@@ -2,15 +2,16 @@
 
 #include "stdint.h"
 
-uint64_t murmur64a (const uint8_t *data, const uint32_t len, const uint32_t seed){
+uint64_t murmur64a (const uint64_t *data, const uint32_t len, const uint32_t seed){
 
     const uint64_t m = 0xc6a4a7935bd1e995;
     const uint8_t r = 47;
     const uint32_t end = (len - (len & 7));
     uint64_t h = seed ^ (len * m);
 
-    for (uint32_t i = 0; i < end; i++) {
-        uint64_t tmp = (uint64_t) data[i];
+    for (uint32_t i = 0; i < end; i = i+8) {
+        uint64_t tmp = data[i];
+
         tmp *= m;
         tmp ^= ( tmp >> r);
         tmp *= m;

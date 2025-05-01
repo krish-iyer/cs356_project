@@ -31,6 +31,7 @@ typedef struct robj robj;
 /* The cached cardinality MSB is used to signal validity of the cached value. */
 #define HLL_INVALIDATE_CACHE(hdr) (hdr)->card[7] |= (1<<7)
 #define HLL_VALID_CACHE(hdr) (((hdr)->card[7] & (1<<7)) == 0)
+
 #define HLL_P 14 /* The greater is P, the smaller the error. */
 #define HLL_Q (64-HLL_P) /* The number of bits of the hash value used for
                             determining the number of leading zeros. */
@@ -85,16 +86,16 @@ uint64_t MurmurHash64A (const void * key, int len, unsigned int seed) {
     const int r = 47;
     uint64_t h = seed ^ (len * m);
     const uint8_t *data = (const uint8_t *)key;
-    const uint8_t end = (len-(len&7));
+    const uint8_t *end = data + (len-(len&7));
 
-    for(int i =0;i<end;i++) {
+    while(data != end) {
         uint64_t k;
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
     #ifdef USE_ALIGNED_ACCESS
         memcpy(&k,data,sizeof(uint64_t));
     #else
-        k = ((uint64_t)data[i]);
+        k = *((uint64_t*)data);
     #endif
 #else
         k = (uint64_t) data[0];
@@ -112,6 +113,7 @@ uint64_t MurmurHash64A (const void * key, int len, unsigned int seed) {
         k *= m;
         h ^= k;
         h *= m;
+        data += 8;
     }
 
     switch(len & 7) {
@@ -483,8 +485,8 @@ int main() {
     ele[2] = 3;
     ele[3] = 4;
     ele[4] = 5;
-    ele[5] = 7;
-    ele[6] = 7;
+    ele[5] = 1;
+    ele[6] = 1;
     ele[7] = 1;
     ele[8] = 1;
     ele[9] = 1;

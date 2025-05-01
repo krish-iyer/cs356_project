@@ -5,42 +5,30 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
-uint64_t ref_func (const void * key, const int len, const unsigned int seed) {
+uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
     const uint64_t m = 0xc6a4a7935bd1e995;
     const int r = 47;
     uint64_t h = seed ^ (len * m);
     const uint8_t *data = (const uint8_t *)key;
-    const uint8_t end = (len-(len&7));
+    const uint8_t *end = data + (len-(len&7));
 
-    uint64_t k;
+    while(data != end) {
+        uint64_t k;
 
-    for (int i=0 ; i<end ;i++) {
-        k = (uint64_t)data[i];
-// #if (BYTE_ORDER == LITTLE_ENDIAN)
-//     #ifdef USE_ALIGNED_ACCESS
-//         memcpy(&k,data,sizeof(uint64_t));
-//     #else
-//         k = *((uint64_t*)data);
-//     #endif
-// #else
-//         k = (uint64_t) data[0];
-//         k |= (uint64_t) data[1] << 8;
-//         k |= (uint64_t) data[2] << 16;
-//         k |= (uint64_t) data[3] << 24;
-//         k |= (uint64_t) data[4] << 32;
-//         k |= (uint64_t) data[5] << 40;
-//         k |= (uint64_t) data[6] << 48;
-//         k |= (uint64_t) data[7] << 56;
-// #endif
+        k = *((uint64_t*)data);
 
         k *= m;
         k ^= k >> r;
         k *= m;
         h ^= k;
         h *= m;
-        //data += 8;
+
+        data += 8;
     }
+
+    printf("\n");
 
     switch(len & 7) {
     case 7: h ^= (uint64_t)data[6] << 48; /* fall-thru */
@@ -65,8 +53,10 @@ uint8_t* create_rand_arr(uint32_t length, int min, int max) {
 
     // Allocate memory for the array
     uint8_t* arr = (uint8_t*)malloc(length * sizeof(uint8_t));
-    if (arr == NULL) return NULL; // Check for allocation failure
-
+    if (arr == NULL){
+        printf("Error in allocation\n");
+        return NULL; // Check for allocation failure
+    }
     // Fill array with random numbers in range [min, max]
     for (int i = 0; i < length; i++) {
         arr[i] = min + rand() % (max - min + 1);
@@ -81,13 +71,13 @@ int main() {
 
     uint8_t *data;
 
-    for (uint32_t i=0; i< arr_len ; i++){
+    for (uint32_t i=8; i< arr_len ; i++){
 
         data = create_rand_arr(i, 1, 255);
         uint32_t seed = 0xadc83b19ULL;
 
-        uint64_t hls_ret = murmur64a(data, i, seed);
-        uint64_t ref_ret = ref_func(data, i, seed);
+        uint64_t hls_ret = murmur64a((uint64_t*)data, 8, seed);
+        uint64_t ref_ret = ref_func(data, 8, seed);
 
         if (hls_ret != ref_ret){
             printf("hls hash doesn't match ref hash\n");

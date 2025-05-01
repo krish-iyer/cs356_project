@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-uint64_t murmur64a (const uint8_t *data, uint32_t len, uint32_t seed);
+uint64_t murmur64a (const uint64_t *data, uint32_t len, uint32_t seed);
 
 #endif
