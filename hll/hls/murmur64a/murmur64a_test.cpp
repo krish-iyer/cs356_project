@@ -1,4 +1,5 @@
 #include "murmur64a.h"
+#include "hll.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -7,7 +8,8 @@
 #include <time.h>
 #include <string.h>
 
-uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
+
+uint64_t ref_murmur64a (const void * key, const uint32_t len, const uint32_t seed) {
     const uint64_t m = 0xc6a4a7935bd1e995;
     const int r = 47;
     uint64_t h = seed ^ (len * m);
@@ -18,7 +20,6 @@ uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
         uint64_t k;
 
         k = *((uint64_t*)data);
-
         k *= m;
         k ^= k >> r;
         k *= m;
@@ -28,8 +29,6 @@ uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
         data += 8;
     }
 
-    printf("\n");
-
     switch(len & 7) {
     case 7: h ^= (uint64_t)data[6] << 48; /* fall-thru */
     case 6: h ^= (uint64_t)data[5] << 40; /* fall-thru */
@@ -38,7 +37,7 @@ uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
     case 3: h ^= (uint64_t)data[2] << 16; /* fall-thru */
     case 2: h ^= (uint64_t)data[1] << 8; /* fall-thru */
     case 1: h ^= (uint64_t)data[0];
-            h *= m; /* fall-thru */
+        h *= m; /* fall-thru */
     };
 
     h ^= h >> r;
@@ -46,6 +45,30 @@ uint64_t ref_func (const void * key, const uint32_t len, const uint32_t seed) {
     h ^= h >> r;
     return h;
 }
+
+int ref_hllpatlen(unsigned char *ele, size_t elesize, long *regp) {
+    uint64_t hash, index;
+    int count;
+
+    /* Count the number of zeroes starting from bit HLL_REGISTERS
+     * (that is a power of two corresponding to the first bit we don't use
+     * as index). The max run can be 64-P+1 = Q+1 bits.
+     *
+     * Note that the final "1" ending the sequence of zeroes must be
+     * included in the count, so if we find "001" the count is 3, and
+     * the smallest count possible is no zeroes at all, just a 1 bit
+     * at the first position, that is a count of 1. */
+    hash = ref_murmur64a(ele,elesize,0xadc83b19ULL);
+    index = hash & HLL_P_MASK; /* Register index. */
+    hash >>= HLL_P; /* Remove bits used to address the register. */
+    hash |= ((uint64_t)1<<HLL_Q); /* Make sure the loop terminates
+                                     and count will be <= Q+1. */
+
+    count = __builtin_ctzll(hash) + 1; // I guess count zeros leading left
+    *regp = (int) index;
+    return count;
+}
+
 
 uint8_t* create_rand_arr(uint32_t length, int min, int max) {
     // Seed the random number generator (call once, typically in main)
@@ -71,13 +94,19 @@ int main() {
 
     uint8_t *data;
 
+    uint64_t *regp;
+
     for (uint32_t i=8; i< arr_len ; i++){
 
         data = create_rand_arr(i, 1, 255);
         uint32_t seed = 0xadc83b19ULL;
 
-        uint64_t hls_ret = murmur64a((uint64_t*)data, 8, seed);
-        uint64_t ref_ret = ref_func(data, 8, seed);
+        uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
+        uint64_t ref_ret = ref_murmur64a(data, i, seed);
+
+        //uint32_t hls_ret = hllPatLen((uint64_t*)data, i, regp);
+        //uint32_t ref_ret = ref_hllpatlen(data, i, (long*)regp);
+
 
         if (hls_ret != ref_ret){
             printf("hls hash doesn't match ref hash\n");
