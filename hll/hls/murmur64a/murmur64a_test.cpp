@@ -46,8 +46,8 @@ uint64_t ref_murmur64a (const void * key, const uint32_t len, const uint32_t see
     return h;
 }
 
-int ref_hllpatlen(unsigned char *ele, size_t elesize, long *regp) {
-    uint64_t hash, index;
+int ref_hllpatlen(unsigned char *ele, size_t elesize, uint64_t *idx) {
+    uint64_t hash;
     int count;
 
     /* Count the number of zeroes starting from bit HLL_REGISTERS
@@ -59,14 +59,42 @@ int ref_hllpatlen(unsigned char *ele, size_t elesize, long *regp) {
      * the smallest count possible is no zeroes at all, just a 1 bit
      * at the first position, that is a count of 1. */
     hash = ref_murmur64a(ele,elesize,0xadc83b19ULL);
-    index = hash & HLL_P_MASK; /* Register index. */
+    *idx = hash & HLL_P_MASK; /* Register index. */
     hash >>= HLL_P; /* Remove bits used to address the register. */
     hash |= ((uint64_t)1<<HLL_Q); /* Make sure the loop terminates
                                      and count will be <= Q+1. */
 
     count = __builtin_ctzll(hash) + 1; // I guess count zeros leading left
-    *regp = (int) index;
     return count;
+}
+
+
+int ref_hllDenseSet(uint8_t *registers, long index, uint8_t count) {
+    uint8_t oldcount=0;
+    printf("ref: idx: %lu count: %d\n", index, count);
+
+    HLL_DENSE_GET_REGISTER(oldcount,registers,index);
+    printf("ref: count > oldcount(%d)\n", oldcount);
+
+    if (count > oldcount) {
+        HLL_DENSE_SET_REGISTER(registers,index,count);
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+/* "Add" the element in the dense hyperloglog data structure.
+ * Actually nothing is added, but the max 0 pattern counter of the subset
+ * the element belongs to is incremented if needed.
+ *
+ * This is just a wrapper to hllDenseSet(), performing the hashing of the
+ * element in order to retrieve the index and zero-run count. */
+int ref_hllDenseAdd(uint8_t *registers, unsigned char *ele, size_t elesize) {
+    uint64_t  index;
+    uint8_t count = ref_hllpatlen(ele,elesize,&index);
+    /* Update the register if this element produced a longer run of zeroes. */
+    return ref_hllDenseSet(registers,index,count);
 }
 
 
@@ -94,18 +122,23 @@ int main() {
 
     uint8_t *data;
 
-    uint64_t *regp;
+    uint64_t hls_idx = 0, ref_idx = 0;
+    uint8_t *hls_registers = (uint8_t*)malloc(16384);
+    uint8_t *ref_registers = (uint8_t*)malloc(16384);
 
     for (uint32_t i=8; i< arr_len ; i++){
 
         data = create_rand_arr(i, 1, 255);
         uint32_t seed = 0xadc83b19ULL;
 
-        uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
-        uint64_t ref_ret = ref_murmur64a(data, i, seed);
+        // uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
+        // uint64_t ref_ret = ref_murmur64a(data, i, seed);
 
-        //uint32_t hls_ret = hllPatLen((uint64_t*)data, i, regp);
-        //uint32_t ref_ret = ref_hllpatlen(data, i, (long*)regp);
+        //uint32_t hls_ret = hllPatLen((ap_uint<8> *)data, i, &idx);
+        //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
+
+        uint8_t hls_ret = hllAdd(hls_registers, (ap_uint<8>*)data, i);
+        uint8_t ref_ret = ref_hllDenseAdd(ref_registers, data, i);
 
 
         if (hls_ret != ref_ret){
