@@ -201,7 +201,7 @@ int main() {
         //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
         uint64_t hls_ret;
 
-        hls_ret = hllCompute((ap_uint<8>*)&data, len, 10);
+        hllCompute((ap_uint<8>*)&data, len, 10, &hls_ret);
 
         for(int i=0;i<10;i++){
             ref_hllDenseAdd(ref_registers, (uint8_t*)&data[i], 1);
@@ -217,7 +217,7 @@ int main() {
             for (int k=0;k<7;k++)
                 hls_data[j*k] = 0;
         }
-        hls_ret = hllCompute((ap_uint<8>*)&data_2, len, 10);
+        hllCompute((ap_uint<8>*)&data_2, len, 10, &hls_ret);
 
         for(int i=0;i<10;i++){
             ref_hllDenseAdd(ref_registers, (uint8_t*)&data_2[i], 1);

@@ -7,6 +7,7 @@
 uint8_t count_zll(const ap_uint<64> data){
     uint8_t count = 0;
     for(uint8_t i = 0;i<64;i++){
+#pragma HLS PIPELINE
         if(data[i]){
             count = i;
             break;
@@ -96,6 +97,8 @@ uint64_t hllCount(uint8_t* registers){
     hllRegHisto(registers, reghisto);
 
     double z = m * hllTau((m-reghisto[HLL_Q+1])/(double)m);
+
+LOOP_COUNT:
     for (uint16_t j = HLL_Q; j >= 1; --j) {
         z += reghisto[j];
         z *= 0.5;
@@ -112,18 +115,26 @@ uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len){
     uint8_t count = hllPatLen(data, len, &idx);
 
     return hllSet(registers, idx, count);
-
-    hllCount(registers);
 }
 
-uint64_t hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele){
+void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, uint64_t *count){
+
+
+#pragma HLS INTERFACE m_axi port = data depth = 256
+#pragma HLS INTERFACE m_axi port = len depth = 256
+#pragma HLS INTERFACE s_axilite port = count depth = 256
+#pragma HLS INTERFACE s_axilite port = num_ele depth = 256
+#pragma HLS INTERFACE s_axilite port = return
 
     static uint8_t registers[16384];
+#pragma HLS BIND_STORAGE variable = registers type = ram_2p impl = uram
 
+LOOP_ELE:
     for (uint32_t i=0 ; i < num_ele ; i++){
+#pragma HLS PIPELINE
         hllAdd(registers, data, len[i]);
         data += len[i];
     }
 
-    return hllCount(registers);
+    *count = hllCount(registers);
 }
