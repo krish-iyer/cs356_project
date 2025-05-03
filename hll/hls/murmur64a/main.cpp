@@ -122,8 +122,8 @@ void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, u
 
 #pragma HLS INTERFACE m_axi port = data depth = 256
 #pragma HLS INTERFACE m_axi port = len depth = 256
-#pragma HLS INTERFACE s_axilite port = count depth = 256
-#pragma HLS INTERFACE s_axilite port = num_ele depth = 256
+#pragma HLS INTERFACE s_axilite port = count
+#pragma HLS INTERFACE s_axilite port = num_ele
 #pragma HLS INTERFACE s_axilite port = return
 
     static uint8_t registers[16384];
