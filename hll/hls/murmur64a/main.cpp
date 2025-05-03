@@ -52,7 +52,9 @@ uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count){
 
 void hllRegHisto(uint8_t *registers, uint32_t *reghisto){
 
+LOOP_REG_HISTO:
     for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
+#pragma HLS PIPELINE
         uint64_t reg;
         HLL_DENSE_GET_REGISTER(reg, registers, j);
         reghisto[reg]++;
@@ -64,7 +66,9 @@ double hllSigma(double x) {
     double zPrime;
     double y = 1;
     double z = x;
+LOOP_SIGMA:
     do {
+//#pragma HLS UNROLL FACTOR=1
         x *= x;
         zPrime = z;
         z += x * y;
@@ -78,11 +82,14 @@ double hllTau(double x) {
     double zPrime;
     double y = 1.0;
     double z = 1 - x;
+LOOP_TAU:
     do {
+//#pragma HLS UNROLL FACTOR=1
+        double tmp_x = x;
         x = sqrt(x);
         zPrime = z;
         y *= 0.5;
-        z -= pow(1 - x, 2)*y;
+        z -= (1 + tmp_x - 2*x)*y;
     } while(zPrime != z);
     return z / 3;
 }
@@ -93,16 +100,23 @@ uint64_t hllCount(uint8_t* registers){
     double E;
 
     uint32_t reghisto[64] = {0};
+    #pragma HLS BIND_STORAGE variable = reghisto type = ram_2p impl=LUTRAM
 
     hllRegHisto(registers, reghisto);
 
     double z = m * hllTau((m-reghisto[HLL_Q+1])/(double)m);
 
+    uint64_t tmp_z = 0;
 LOOP_COUNT:
     for (uint16_t j = HLL_Q; j >= 1; --j) {
-        z += reghisto[j];
-        z *= 0.5;
+#pragma HLS PIPELINE II=1
+//#pragma HLS loop_flatten off
+//#pragma HLS UNROLL FACTOR = 10
+//#pragma HLS LOOP_TRIPCOUNT min=5 max=5
+        tmp_z += reghisto[j];
     }
+    z += tmp_z;
+    z *= 0.5;
     z += m * hllSigma(reghisto[0]/(double)m);
     E = llround(HLL_ALPHA_INF*m*m/z);
 
@@ -131,7 +145,7 @@ void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, u
 
 LOOP_ELE:
     for (uint32_t i=0 ; i < num_ele ; i++){
-#pragma HLS PIPELINE
+#pragma HLS UNROLL FACTOR=2
         hllAdd(registers, data, len[i]);
         data += len[i];
     }
