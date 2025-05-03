@@ -71,10 +71,10 @@ int ref_hllpatlen(unsigned char *ele, size_t elesize, uint64_t *idx) {
 
 int ref_hllDenseSet(uint8_t *registers, long index, uint8_t count) {
     uint8_t oldcount=0;
-    printf("ref: idx: %lu count: %d\n", index, count);
+    //printf("ref: idx: %lu count: %d\n", index, count);
 
     HLL_DENSE_GET_REGISTER(oldcount,registers,index);
-    printf("ref: count > oldcount(%d)\n", oldcount);
+    //printf("ref: count > oldcount(%d)\n", oldcount);
 
     if (count > oldcount) {
         HLL_DENSE_SET_REGISTER(registers,index,count);
@@ -84,17 +84,71 @@ int ref_hllDenseSet(uint8_t *registers, long index, uint8_t count) {
     }
 }
 
-/* "Add" the element in the dense hyperloglog data structure.
- * Actually nothing is added, but the max 0 pattern counter of the subset
- * the element belongs to is incremented if needed.
- *
- * This is just a wrapper to hllDenseSet(), performing the hashing of the
- * element in order to retrieve the index and zero-run count. */
 int ref_hllDenseAdd(uint8_t *registers, unsigned char *ele, size_t elesize) {
     uint64_t  index;
     uint8_t count = ref_hllpatlen(ele,elesize,&index);
     /* Update the register if this element produced a longer run of zeroes. */
     return ref_hllDenseSet(registers,index,count);
+}
+
+
+void ref_hllDenseRegHisto(uint8_t *registers, int* reghisto) {
+    int j;
+
+    for(j = 0; j < HLL_REGISTERS; j++) {
+        unsigned long reg;
+        HLL_DENSE_GET_REGISTER(reg,registers,j);
+        reghisto[reg]++;
+    }
+}
+
+double ref_hllSigma(double x) {
+    if (x == 1.) return INFINITY;
+    double zPrime;
+    double y = 1;
+    double z = x;
+    do {
+        x *= x;
+        zPrime = z;
+        z += x * y;
+        y += y;
+    } while(zPrime != z);
+    return z;
+}
+
+double ref_hllTau(double x) {
+    if (x == 0. || x == 1.) return 0.;
+    double zPrime;
+    double y = 1.0;
+    double z = 1 - x;
+    do {
+        x = sqrt(x);
+        zPrime = z;
+        y *= 0.5;
+        z -= pow(1 - x, 2)*y;
+    } while(zPrime != z);
+    return z / 3;
+}
+
+uint64_t ref_hllCount(uint8_t *registers) {
+    double m = HLL_REGISTERS;
+    double E;
+    int j;
+
+    int reghisto[64] = {0};
+
+
+    ref_hllDenseRegHisto(registers,reghisto);
+
+    double z = m * ref_hllTau((m-reghisto[HLL_Q+1])/(double)m);
+    for (j = HLL_Q; j >= 1; --j) {
+        z += reghisto[j];
+        z *= 0.5;
+    }
+    z += m * ref_hllSigma(reghisto[0]/(double)m);
+    E = llroundl(HLL_ALPHA_INF*m*m/z);
+
+    return (uint64_t) E;
 }
 
 
@@ -120,7 +174,7 @@ int main() {
 
     uint8_t arr_len = 200;
 
-    uint8_t *data;
+    //uint8_t *data;
 
     uint64_t hls_idx = 0, ref_idx = 0;
     uint8_t *hls_registers = (uint8_t*)malloc(16384);
@@ -128,7 +182,9 @@ int main() {
 
     for (uint32_t i=8; i< arr_len ; i++){
 
-        data = create_rand_arr(i, 1, 255);
+        //data = create_rand_arr(i, 1, 255);
+        uint8_t data[10] = {1,2,3,4,5,6,7,9,7,7};
+
         uint32_t seed = 0xadc83b19ULL;
 
         // uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
@@ -137,9 +193,13 @@ int main() {
         //uint32_t hls_ret = hllPatLen((ap_uint<8> *)data, i, &idx);
         //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
 
-        uint8_t hls_ret = hllAdd(hls_registers, (ap_uint<8>*)data, i);
-        uint8_t ref_ret = ref_hllDenseAdd(ref_registers, data, i);
+        for(int i=0;i<10;i++){
+            hllAdd(hls_registers, (ap_uint<8>*)&data[i], 1);
+            ref_hllDenseAdd(ref_registers, (uint8_t*)&data[i], 1);
+        }
 
+        uint64_t hls_ret = hllCount(hls_registers);
+        uint64_t ref_ret = ref_hllCount(ref_registers);
 
         if (hls_ret != ref_ret){
             printf("hls hash doesn't match ref hash\n");
@@ -153,10 +213,10 @@ int main() {
                 printf("%d ",data[j]);
 
             printf("\n");
-            free(data);
+            //free(data);
             break;
         }
-        free(data);
+        //free(data);
         printf("[INFO] hls_ret: %lu ref_ret: %lu\n",hls_ret, ref_ret);
     }
 

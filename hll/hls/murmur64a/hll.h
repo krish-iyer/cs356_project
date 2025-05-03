@@ -11,6 +11,10 @@
 #define HLL_P_MASK (HLL_REGISTERS-1) /* Mask to index register. */
 #define HLL_BITS 6 /* Enough to count up to 63 leading zeroes. */
 #define HLL_REGISTER_MAX ((1<<HLL_BITS)-1)
+#define INFINITY ((float)(1e+300 * 1e+300))
+
+
+#define HLL_ALPHA_INF 0.721347520444481703680 /* constant for 0.5/ln(2) */
 
 /* Store the value of the register at position 'regnum' into variable 'target'.
  * 'p' is an array of unsigned bytes. */
@@ -42,5 +46,7 @@
 uint8_t hllPatLen(ap_uint<8> *data, const uint32_t len, uint64_t *idx);
 uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count);
 uint8_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len);
+void hllRegHisto(uint8_t *registers, uint32_t *reghisto);
+uint64_t hllCount(uint8_t* registers);
 
 #endif // HLL_H_

@@ -1,5 +1,6 @@
 #include "murmur64a.h"
 #include "hll.h"
+#include <hls_math.h>
 
 #include "ap_int.h"
 
@@ -45,6 +46,64 @@ uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count){
     } else {
         return 0;
     }
+
+}
+
+void hllRegHisto(uint8_t *registers, uint32_t *reghisto){
+
+    for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
+        uint64_t reg;
+        HLL_DENSE_GET_REGISTER(reg, registers, j);
+        reghisto[reg]++;
+    }
+}
+
+double hllSigma(double x) {
+    if (x == 1.) return INFINITY;
+    double zPrime;
+    double y = 1;
+    double z = x;
+    do {
+        x *= x;
+        zPrime = z;
+        z += x * y;
+        y += y;
+    } while(zPrime != z);
+    return z;
+}
+
+double hllTau(double x) {
+    if (x == 0. || x == 1.) return 0.;
+    double zPrime;
+    double y = 1.0;
+    double z = 1 - x;
+    do {
+        x = sqrt(x);
+        zPrime = z;
+        y *= 0.5;
+        z -= pow(1 - x, 2)*y;
+    } while(zPrime != z);
+    return z / 3;
+}
+
+
+uint64_t hllCount(uint8_t* registers){
+    double m = HLL_REGISTERS;
+    double E;
+
+    uint32_t reghisto[64] = {0};
+
+    hllRegHisto(registers, reghisto);
+
+    double z = m * hllTau((m-reghisto[HLL_Q+1])/(double)m);
+    for (uint16_t j = HLL_Q; j >= 1; --j) {
+        z += reghisto[j];
+        z *= 0.5;
+    }
+    z += m * hllSigma(reghisto[0]/(double)m);
+    E = llround(HLL_ALPHA_INF*m*m/z);
+
+    return (uint64_t) E;
 
 }
 
