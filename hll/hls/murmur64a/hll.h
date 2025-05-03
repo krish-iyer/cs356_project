@@ -48,5 +48,6 @@ uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count);
 uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len);
 void hllRegHisto(uint8_t *registers, uint32_t *reghisto);
 uint64_t hllCount(uint8_t* registers);
+uint64_t hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele);
 
 #endif // HLL_H_

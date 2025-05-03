@@ -184,7 +184,14 @@ int main() {
 
         //data = create_rand_arr(i, 1, 255);
         uint8_t data[10] = {1,2,3,4,5,6,7,9,7,7};
+        uint32_t len[10] = {1,1,1,1,1,1,1,1,1,1};
+        uint64_t hls_data[10*8];
 
+        for (int j=0; j<10;j++){
+            hls_data[j*8] = data[j];
+            for (int k=0;k<7;k++)
+                hls_data[j*k] = 0;
+        }
         uint32_t seed = 0xadc83b19ULL;
 
         // uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
@@ -193,8 +200,10 @@ int main() {
         //uint32_t hls_ret = hllPatLen((ap_uint<8> *)data, i, &idx);
         //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
         uint64_t hls_ret;
+
+        hls_ret = hllCompute((ap_uint<8>*)&data, len, 10);
+
         for(int i=0;i<10;i++){
-            hls_ret = hllAdd(hls_registers, (ap_uint<8>*)&data[i], 1);
             ref_hllDenseAdd(ref_registers, (uint8_t*)&data[i], 1);
         }
 
@@ -203,8 +212,14 @@ int main() {
 
         uint8_t data_2[10] = {11,12,13,14,15,16,17,19,10,10};
 
+        for (int j=0; j<10;j++){
+            hls_data[j*8] = data_2[j];
+            for (int k=0;k<7;k++)
+                hls_data[j*k] = 0;
+        }
+        hls_ret = hllCompute((ap_uint<8>*)&data_2, len, 10);
+
         for(int i=0;i<10;i++){
-            hls_ret = hllAdd(hls_registers, (ap_uint<8>*)&data_2[i], 1);
             ref_hllDenseAdd(ref_registers, (uint8_t*)&data_2[i], 1);
         }
 

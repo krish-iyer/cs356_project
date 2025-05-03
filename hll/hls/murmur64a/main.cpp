@@ -111,7 +111,19 @@ uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len){
     uint64_t idx = 0;
     uint8_t count = hllPatLen(data, len, &idx);
 
-    uint8_t ret_set = hllSet(registers, idx, count);
+    return hllSet(registers, idx, count);
+
+    hllCount(registers);
+}
+
+uint64_t hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele){
+
+    static uint8_t registers[16384];
+
+    for (uint32_t i=0 ; i < num_ele ; i++){
+        hllAdd(registers, data, len[i]);
+        data += len[i];
+    }
 
     return hllCount(registers);
 }
