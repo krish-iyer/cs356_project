@@ -172,7 +172,7 @@ uint8_t* create_rand_arr(uint32_t length, int min, int max) {
 
 int main() {
 
-    uint8_t arr_len = 200;
+    uint8_t arr_len = 9;
 
     //uint8_t *data;
 
@@ -192,14 +192,25 @@ int main() {
 
         //uint32_t hls_ret = hllPatLen((ap_uint<8> *)data, i, &idx);
         //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
-
+        uint64_t hls_ret;
         for(int i=0;i<10;i++){
-            hllAdd(hls_registers, (ap_uint<8>*)&data[i], 1);
+            hls_ret = hllAdd(hls_registers, (ap_uint<8>*)&data[i], 1);
             ref_hllDenseAdd(ref_registers, (uint8_t*)&data[i], 1);
         }
 
-        uint64_t hls_ret = hllCount(hls_registers);
+        //uint64_t hls_ret = hllCount(hls_registers);
         uint64_t ref_ret = ref_hllCount(ref_registers);
+
+        uint8_t data_2[10] = {11,12,13,14,15,16,17,19,10,10};
+
+        for(int i=0;i<10;i++){
+            hls_ret = hllAdd(hls_registers, (ap_uint<8>*)&data_2[i], 1);
+            ref_hllDenseAdd(ref_registers, (uint8_t*)&data_2[i], 1);
+        }
+
+        //hls_ret = hllCount(hls_registers);
+        ref_ret = ref_hllCount(ref_registers);
+
 
         if (hls_ret != ref_ret){
             printf("hls hash doesn't match ref hash\n");

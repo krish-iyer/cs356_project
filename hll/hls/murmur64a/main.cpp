@@ -107,9 +107,11 @@ uint64_t hllCount(uint8_t* registers){
 
 }
 
-uint8_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len){
+uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len){
     uint64_t idx = 0;
     uint8_t count = hllPatLen(data, len, &idx);
 
-    return hllSet(registers, idx, count);
+    uint8_t ret_set = hllSet(registers, idx, count);
+
+    return hllCount(registers);
 }
