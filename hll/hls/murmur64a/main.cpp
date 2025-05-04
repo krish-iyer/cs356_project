@@ -114,9 +114,6 @@ uint64_t hllCount(uint8_t* registers){
 LOOP_COUNT:
     for (uint16_t j = HLL_Q; j >= 1; --j) {
 #pragma HLS PIPELINE II=1
-//#pragma HLS loop_flatten off
-//#pragma HLS UNROLL FACTOR = 10
-//#pragma HLS LOOP_TRIPCOUNT min=5 max=5
         tmp_z += reghisto[j];
     }
     z += tmp_z;
