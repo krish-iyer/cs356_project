@@ -54,7 +54,7 @@ void hllRegHisto(uint8_t *registers, uint32_t *reghisto){
 
 LOOP_REG_HISTO:
     for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
-#pragma HLS PIPELINE
+#pragma HLS UNROLL FACTOR=1024
         uint64_t reg;
         HLL_DENSE_GET_REGISTER(reg, registers, j);
         reghisto[reg]++;
@@ -62,13 +62,15 @@ LOOP_REG_HISTO:
 }
 
 double hllSigma(double x) {
+#pragma HLS INLINE
     if (x == 1.) return INFINITY;
     double zPrime;
     double y = 1;
     double z = x;
 LOOP_SIGMA:
     do {
-//#pragma HLS UNROLL FACTOR=1
+#pragma HLS UNROLL FACTOR=8
+#pragma HLS LOOP_TRIPCOUNT max=32
         x *= x;
         zPrime = z;
         z += x * y;
@@ -78,13 +80,15 @@ LOOP_SIGMA:
 }
 
 double hllTau(double x) {
+#pragma HLS INLINE
     if (x == 0. || x == 1.) return 0.;
     double zPrime;
     double y = 1.0;
     double z = 1 - x;
 LOOP_TAU:
     do {
-//#pragma HLS UNROLL FACTOR=1
+#pragma HLS UNROLL FACTOR=8
+#pragma HLS LOOP_TRIPCOUNT max=32
         double tmp_x = x;
         x = sqrt(x);
         zPrime = z;
