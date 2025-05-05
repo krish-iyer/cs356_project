@@ -4,6 +4,34 @@
 
 #include "ap_int.h"
 
+
+void hll_get_register(uint16_t *target, uint8_t *p, uint64_t regnum) {
+    #pragma HLS INLINE
+    uint8_t *_p = (uint8_t*) p;
+    uint64_t _byte = ((regnum)*HLL_BITS) >> 3;
+    uint64_t _fb = (regnum)*HLL_BITS&7;
+    uint64_t _fb8 = 8 - _fb;
+    uint64_t b0 = _p[_byte];
+    uint64_t b1 = _p[_byte+1];
+    *target = ((b0 >> _fb) | (b1 << _fb8)) & HLL_REGISTER_MAX;
+}
+
+/* Set the value of the register at position 'regnum' to 'val'.
+ * 'p' is an array of unsigned bytes. */
+void hll_set_register(uint8_t *p, uint64_t regnum, uint8_t val) {
+    #pragma HLS INLINE
+    uint8_t *_p = (uint8_t*) p;
+    uint64_t _byte = ((regnum)*HLL_BITS) >> 3;
+    uint64_t _fb = (regnum)*HLL_BITS&7;
+    uint64_t _fb8 = 8 - _fb;
+    uint64_t _v =  (val);
+    _p[_byte] &= ~(HLL_REGISTER_MAX << _fb);
+    _p[_byte] |= _v << _fb;
+    _p[_byte+1] &= ~(HLL_REGISTER_MAX >> _fb8);
+    _p[_byte+1] |= _v >> _fb8;
+}
+
+
 uint8_t count_zll(const ap_uint<64> data){
     uint8_t count = 0;
     for(uint8_t i = 0;i<64;i++){
@@ -34,15 +62,15 @@ uint8_t hllPatLen(ap_uint<8> *data, const uint32_t len, uint64_t *idx){
 
 }
 
-uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count){
-    uint8_t oldcount=0;
+uint8_t hllSet(uint8_t *registers, uint64_t idx, uint16_t count){
+    uint16_t oldcount=0;
     //printf("hls: idx: %lu count: %d\n", idx, count);
 
-    HLL_DENSE_GET_REGISTER(oldcount, registers, idx);
+    hll_get_register(&oldcount, registers, idx);
     //printf("hls: count> oldcount(%d)\n", oldcount);
 
     if (count > oldcount) {
-        HLL_DENSE_SET_REGISTER(registers, idx, count);
+        hll_set_register(registers, idx, count);
         return 1;
     } else {
         return 0;
@@ -54,9 +82,9 @@ void hllRegHisto(uint8_t *registers, uint32_t *reghisto){
 
 LOOP_REG_HISTO:
     for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
-#pragma HLS UNROLL FACTOR=1024
-        uint64_t reg;
-        HLL_DENSE_GET_REGISTER(reg, registers, j);
+#pragma HLS UNROLL FACTOR=64
+        uint16_t reg;
+        hll_get_register(&reg, registers, (uint64_t)j);
         reghisto[reg]++;
     }
 }
@@ -104,7 +132,8 @@ uint64_t hllCount(uint8_t* registers){
     double E;
 
     uint32_t reghisto[64] = {0};
-    #pragma HLS BIND_STORAGE variable = reghisto type = ram_2p impl=LUTRAM
+//#pragma HLS BIND_STORAGE variable = reghisto type = ram_2p impl=LUTRAM
+#pragma HLS ARRAY_RESHAPE variable=reghisto type=complete dim=1
 
     hllRegHisto(registers, reghisto);
 
@@ -127,7 +156,7 @@ LOOP_COUNT:
 
 uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len){
     uint64_t idx = 0;
-    uint8_t count = hllPatLen(data, len, &idx);
+    uint16_t count = hllPatLen(data, len, &idx);
 
     return hllSet(registers, idx, count);
 }
@@ -141,9 +170,8 @@ void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, u
 #pragma HLS INTERFACE s_axilite port = num_ele
 #pragma HLS INTERFACE s_axilite port = return
 
-    static uint8_t registers[16384];
-#pragma HLS BIND_STORAGE variable = registers type = ram_2p impl = uram
-
+    static uint8_t registers[HLL_REGISTERS];
+#pragma HLS ARRAY_RESHAPE variable=registers type=cyclic factor=128 dim=1
 LOOP_ELE:
     for (uint32_t i=0 ; i < num_ele ; i++){
 #pragma HLS UNROLL FACTOR=2

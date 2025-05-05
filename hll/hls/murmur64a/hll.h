@@ -18,9 +18,9 @@
 
 /* Store the value of the register at position 'regnum' into variable 'target'.
  * 'p' is an array of unsigned bytes. */
-#define HLL_DENSE_GET_REGISTER(target,p,regnum) do { \
-    uint8_t *_p = (uint8_t*) p; \
-    uint64_t _byte = regnum*HLL_BITS/8; \
+#define HLL_DENSE_GET_REGISTER(target,p,regnum) do {    \
+    uint8_t *_p = (uint8_t*) p;              \
+    uint64_t _byte = (regnum*HLL_BITS) >> 3; \
     uint64_t _fb = regnum*HLL_BITS&7; \
     uint64_t _fb8 = 8 - _fb; \
     uint64_t b0 = _p[_byte]; \
@@ -31,8 +31,8 @@
 /* Set the value of the register at position 'regnum' to 'val'.
  * 'p' is an array of unsigned bytes. */
 #define HLL_DENSE_SET_REGISTER(p,regnum,val) do { \
-    uint8_t *_p = (uint8_t*) p; \
-    uint64_t _byte = (regnum)*HLL_BITS/8; \
+    uint8_t *_p = (uint8_t*) p;         \
+    uint64_t _byte = ((regnum)*HLL_BITS) >> 3; \
     uint64_t _fb = (regnum)*HLL_BITS&7; \
     uint64_t _fb8 = 8 - _fb; \
     uint64_t _v = (val); \
