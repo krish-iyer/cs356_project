@@ -97,8 +97,8 @@ double hllSigma(double x) {
     double z = x;
 LOOP_SIGMA:
     do {
-#pragma HLS UNROLL FACTOR=8
-#pragma HLS LOOP_TRIPCOUNT max=32
+#pragma HLS UNROLL FACTOR=16
+#pragma HLS LOOP_TRIPCOUNT max=16
         x *= x;
         zPrime = z;
         z += x * y;
@@ -115,8 +115,8 @@ double hllTau(double x) {
     double z = 1 - x;
 LOOP_TAU:
     do {
-#pragma HLS UNROLL FACTOR=8
-#pragma HLS LOOP_TRIPCOUNT max=32
+#pragma HLS UNROLL FACTOR=16
+#pragma HLS LOOP_TRIPCOUNT max=16
         double tmp_x = x;
         x = sqrt(x);
         zPrime = z;
@@ -142,7 +142,8 @@ uint64_t hllCount(uint8_t* registers){
     uint64_t tmp_z = 0;
 LOOP_COUNT:
     for (uint16_t j = HLL_Q; j >= 1; --j) {
-#pragma HLS PIPELINE II=1
+//#pragma HLS PIPELINE II=1
+#pragma HLS UNROLL
         tmp_z += reghisto[j];
     }
     z += tmp_z;
