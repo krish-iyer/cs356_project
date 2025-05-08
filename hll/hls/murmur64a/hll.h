@@ -43,11 +43,11 @@
 } while(0)
 
 
-uint8_t hllPatLen(ap_uint<8> *data, const uint32_t len, uint64_t *idx);
-uint8_t hllSet(uint8_t *registers, uint64_t idx, uint8_t count);
-uint64_t hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len);
+void hllPatLen(ap_uint<8> *data, const uint32_t len, uint64_t *idx, uint8_t *ret);
+void hllSet(uint8_t *registers, uint64_t idx, uint8_t count, uint8_t *ret);
+void hllAdd(uint8_t *registers, ap_uint<8> *data, const uint32_t len);
 void hllRegHisto(uint8_t *registers, uint32_t *reghisto);
-uint64_t hllCount(uint8_t* registers);
+void hllCount(uint8_t* registers, uint64_t *ret);
 void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, uint64_t *count);
 
 #endif // HLL_H_

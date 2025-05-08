@@ -3,7 +3,7 @@
 #include "stdint.h"
 #include <ap_int.h>
 
-uint64_t murmur64a (const ap_uint<8> *data, const uint32_t len, const uint32_t seed){
+void murmur64a (const ap_uint<8> *data, const uint32_t len, const uint32_t seed, uint64_t *ret){
 
     const uint64_t m = 0xc6a4a7935bd1e995;
     const uint8_t r = 47;
@@ -64,5 +64,5 @@ LOOP_MURMUR_2: // need to optimize this, data dependency might be bottleneck
     h *= m;
     h ^= h >> r;
 
-    return h;
+    *ret = h;
 }
