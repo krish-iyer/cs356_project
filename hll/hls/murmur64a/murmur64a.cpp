@@ -10,8 +10,9 @@ uint64_t murmur64a (const ap_uint<8> *data, const uint32_t len, const uint32_t s
     const uint32_t end = (len - (len & 7));
     uint64_t h = seed ^ (len * m);
     ap_uint<8> tmp_cpy[8];
+//#pragma HLS ARRAY_RESHAPE variable=tmp_cpy type=complete dim=1
 
-    for (int j=0 ; j< 8 ;j++){
+    for (int j=0 ; j < 8 ;j++){
 #pragma HLS UNROLL FACTOR=8
         tmp_cpy[j] = data[j];
 
@@ -32,12 +33,13 @@ LOOP_MURMUR_1:
 
     LOOP_MURMUR_1_CPY:
         for (int j=0 ; j< 8 ;j++){
-#pragma HLS UNROLL FACTOR=8
+#pragma HLS UNROLL
             tmp_cpy[j] = data[j];
         }
     }
 
     uint64_t tmp_r[8];
+#pragma HLS ARRAY_RESHAPE variable=tmp_r type=complete dim=1
 
     tmp_r[7] = (uint64_t)tmp_cpy[6] << 48;
     tmp_r[6] = (uint64_t)tmp_cpy[5] << 40;
@@ -49,6 +51,8 @@ LOOP_MURMUR_1:
 
 LOOP_MURMUR_2: // need to optimize this, data dependency might be bottleneck
     for (uint8_t i=(len&7) ; i >= 1; i--){
+//#pragma HLS UNROLL factor=7
+//#pragma HLS LOOP_TRIPCOUNT max=1
         h ^= tmp_r[i];
     }
 
