@@ -118,13 +118,16 @@ double hllTau(double x) {
     double z = 1 - x;
 LOOP_TAU:
     do {
+//#pragma HLS bind_op variable=x impl=dsp
+//#pragma HLS bind_op variable=z impl=dsp
 //#pragma HLS UNROLL FACTOR=2
 //#pragma HLS LOOP_TRIPCOUNT max=128
         double tmp_x = x;
         x = sqrt(x);
         zPrime = z;
+        double tmp_sq = (1 + tmp_x - 2*x);
         y *= 0.5;
-        z -= (1 + tmp_x - 2*x)*y;
+        z -= tmp_sq * y;
     } while(zPrime != z);
     return z / 3;
 }
@@ -147,8 +150,8 @@ void hllCount(uint8_t* registers, uint64_t *ret){
 
 LOOP_REG_HISTO:
     for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
-#pragma HLS PIPELINE II=28
-#pragma HLS UNROLL FACTOR=64
+#pragma HLS PIPELINE II=22
+#pragma HLS UNROLL FACTOR=32
         //hll_get_register(&reg, registers, (uint64_t)j);
         ap_uint<6> reg;
         uint8_t *_p = registers;
