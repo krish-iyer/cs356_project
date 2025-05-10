@@ -150,7 +150,7 @@ void hllCount(uint8_t* registers, uint64_t *ret){
 
 LOOP_REG_HISTO:
     for(uint16_t j = 0; j < HLL_REGISTERS; j++) {
-#pragma HLS PIPELINE II=22
+#pragma HLS PIPELINE II=20
 #pragma HLS UNROLL FACTOR=32
         //hll_get_register(&reg, registers, (uint64_t)j);
         ap_uint<6> reg;
