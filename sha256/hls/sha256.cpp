@@ -21,13 +21,23 @@ void sha256_transform(sha256_ctx *ctx, uint8_t *data)
     0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
     0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
 };
+
+#pragma HLS ARRAY_PARTITION variable=k type=complete
+
     uint32_t a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
-    for (i = 0, j = 0; i < 16; ++i, j += 4)
-        m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
-    for (; i < 64; ++i)
-        m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
+#pragma HLS ARRAY_PARTITION variable=m type=complete
 
+LOOP_TNSFM_1:
+    for (i = 0, j = 0; i < 16; ++i, j += 4){
+#pragma HLS UNROLL
+        m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
+    }
+LOOP_TNSFM_2:
+    for (; i < 64; ++i){
+#pragma HLS UNROLL
+        m[i] = SIG1(m[i - 2]) + m[i - 7] + SIG0(m[i - 15]) + m[i - 16];
+    }
     a = ctx->state[0];
     b = ctx->state[1];
     c = ctx->state[2];
@@ -38,6 +48,7 @@ void sha256_transform(sha256_ctx *ctx, uint8_t *data)
     h = ctx->state[7];
 
     for (i = 0; i < 64; ++i) {
+#pragma HLS UNROLL
         t1 = h + EP1(e) + CH(e, f, g) + k[i] + m[i];
         t2 = EP0(a) + MAJ(a, b, c);
         h = g;
@@ -76,16 +87,14 @@ void sha256_init(sha256_ctx *ctx)
 }
 
 
-void sha256_update(sha256_ctx *ctx, uint8_t *data, uint32_t len)
+void sha256_update(sha256_ctx *ctx, uint8_t data)
 {
-    for (uint32_t i = 0; i < len; ++i) {
-        ctx->data[ctx->datalen] = data[i];
-        ctx->datalen++;
-        if (ctx->datalen == 64) {
-            sha256_transform(ctx, ctx->data);
-            DBL_INT_ADD(ctx->bitlen[0], ctx->bitlen[1], 512);
-            ctx->datalen = 0;
-        }
+    ctx->data[ctx->datalen] = data;
+    ctx->datalen++;
+    if (ctx->datalen == 64) {
+        sha256_transform(ctx, ctx->data);
+        DBL_INT_ADD(ctx->bitlen[0], ctx->bitlen[1], 512);
+        ctx->datalen = 0;
     }
 }
 
@@ -95,8 +104,9 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
 
     if (ctx->datalen < 56) {
         ctx->data[i++] = 0x80;
-        while (i < 56)
+        while (i < 56){
             ctx->data[i++] = 0x00;
+        }
     }
     else {
         ctx->data[i++] = 0x80;
@@ -104,6 +114,7 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
             ctx->data[i++] = 0x00;
         sha256_transform(ctx, ctx->data);
         for (uint8_t j=0;j<56;j++){
+#pragma HLS UNROLL
             ctx->data[j] = 0;
         }
     }
@@ -119,24 +130,34 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
     ctx->data[56] = ctx->bitlen[1] >> 24;
     sha256_transform(ctx, ctx->data);
 
-    for (i = 0; i < 4; ++i) {
-        hash[i] = (ctx->state[0] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 4] = (ctx->state[1] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 8] = (ctx->state[2] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 12] = (ctx->state[3] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 16] = (ctx->state[4] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 20] = (ctx->state[5] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 24] = (ctx->state[6] >> (24 - i * 8)) & 0x000000ff;
-        hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
+    for (i = 0; i < 4; i++){
+#pragma HLS UNROLL
+        hash[i] = (ctx->state[0] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 4] = (ctx->state[1] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 8] = (ctx->state[2] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 12] = (ctx->state[3] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 16] = (ctx->state[4] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 20] = (ctx->state[5] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 24] = (ctx->state[6] >> (24 - (i << 3))) & 0x000000ff;
+        hash[i + 28] = (ctx->state[7] >> (24 - (i << 3))) & 0x000000ff;
     }
 }
 
 void sha256(char *data, uint32_t len, uint8_t hash[32]){
 
     sha256_ctx ctx;
-
+#pragma HLS ARRAY_PARTITION variable=ctx.state type=complete
+    uint8_t hash_int[32];
+#pragma HLS ARRAY_PARTITION variable=hash_int type=complete
     sha256_init(&ctx);
-    sha256_update(&ctx, (uint8_t*)&(*data), len);
-    sha256_final(&ctx, hash);
+    for(uint32_t i=0 ; i<len;i++){
+        sha256_update(&ctx, (uint8_t)data[i]);
+    }
+    sha256_final(&ctx, hash_int);
+
+    for(uint8_t i=0;i<32;i++){
+#pragma HLS UNROLL
+        hash[i] = hash_int[i];
+    }
 
 }
