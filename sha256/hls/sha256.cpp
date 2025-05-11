@@ -3,14 +3,12 @@
 typedef struct {
     uint8_t data[64];
     uint32_t datalen;
-    uint32_t bitlen[2];
+    uint64_t bitlen[2];
     uint32_t state[8];
 } sha256_ctx;
 
 void sha256_transform(sha256_ctx *ctx, uint8_t *data)
 {
-
-
     uint32_t k[64] = {
     0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
     0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
@@ -28,10 +26,12 @@ void sha256_transform(sha256_ctx *ctx, uint8_t *data)
 
 #pragma HLS ARRAY_PARTITION variable=m type=complete
 
+    j = 0;
 LOOP_TNSFM_1:
-    for (i = 0, j = 0; i < 16; ++i, j += 4){
+    for (i = 0; i < 16; ++i){
 #pragma HLS UNROLL
         m[i] = (data[j] << 24) | (data[j + 1] << 16) | (data[j + 2] << 8) | (data[j + 3]);
+        j += 4;
     }
 LOOP_TNSFM_2:
     for (; i < 64; ++i){
@@ -93,7 +93,7 @@ void sha256_update(sha256_ctx *ctx, uint8_t data)
     ctx->datalen++;
     if (ctx->datalen == 64) {
         sha256_transform(ctx, ctx->data);
-        DBL_INT_ADD(ctx->bitlen[0], ctx->bitlen[1], 512);
+        DBL_INT_ADD(ctx->bitlen[0], ctx->bitlen[1], ctx->datalen * 8);
         ctx->datalen = 0;
     }
 }
@@ -143,21 +143,25 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
     }
 }
 
-void sha256(char *data, uint32_t len, uint8_t hash[32]){
+void sha256(const char *data, const uint32_t len, uint8_t *hash){
+
+#pragma HLS INTERFACE m_axi port = data depth = 256
+#pragma HLS INTERFACE m_axi port = hash depth = 256
+#pragma HLS INTERFACE s_axilite port = len
+#pragma HLS INTERFACE s_axilite port = return
 
     sha256_ctx ctx;
 #pragma HLS ARRAY_PARTITION variable=ctx.state type=complete
     uint8_t hash_int[32];
 #pragma HLS ARRAY_PARTITION variable=hash_int type=complete
     sha256_init(&ctx);
-    for(uint32_t i=0 ; i<len;i++){
+    for(uint32_t i=0 ; i< len;i++){
         sha256_update(&ctx, (uint8_t)data[i]);
     }
     sha256_final(&ctx, hash_int);
 
-    for(uint8_t i=0;i<32;i++){
+    for(uint8_t j=0 ; j<32 ;j++){
 #pragma HLS UNROLL
-        hash[i] = hash_int[i];
+        hash[j] = hash_int[j];
     }
-
 }

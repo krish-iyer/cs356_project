@@ -14,6 +14,6 @@
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
 
-void sha256(char *data, uint32_t len, uint8_t hash[32]);
+void sha256(const char *data, const uint32_t len, uint8_t *hash);
 
 #endif // SHA256_H_
