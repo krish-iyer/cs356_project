@@ -143,10 +143,10 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
     }
 }
 
-void sha256(const char *data, const uint32_t len, uint8_t *hash){
+void sha256(const char *data, const uint32_t len, uint8_t hash[32]){
 
 #pragma HLS INTERFACE m_axi port = data depth = 256
-#pragma HLS INTERFACE m_axi port = hash depth = 256
+#pragma HLS INTERFACE s_axilite port = hash //depth = 256
 #pragma HLS INTERFACE s_axilite port = len
 #pragma HLS INTERFACE s_axilite port = return
 

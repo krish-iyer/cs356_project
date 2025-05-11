@@ -14,9 +14,11 @@ void ref_sha256(const char *input, uint32_t len, unsigned char* hash) {
 
 int main (){
     char data[13] = "hello world!";
+    char data_ref[13] = "hello world!";
+
     //char data[12] = "dlrow olleh";
     int len = strlen(data);
-    uint8_t hash[32] = {0} ; // (uint8_t*)malloc(32);
+    uint8_t *hash = (uint8_t*)malloc(32);
     sha256(data, 12, hash);
     printf("hash: 0x");
     for(int i=0;i<32;i++)
@@ -25,7 +27,7 @@ int main (){
 
     uint8_t ref_hash[32];
 
-    ref_sha256(data, 12, ref_hash);
+    ref_sha256(data_ref, 12, ref_hash);
     printf("ref_hash: 0x");
     for(int i=0;i<32;i++)
         printf("%x",ref_hash[i]);
