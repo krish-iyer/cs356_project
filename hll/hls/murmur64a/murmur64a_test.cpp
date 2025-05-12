@@ -8,6 +8,30 @@
 #include <time.h>
 #include <string.h>
 
+#define HLL_DENSE_GET_REGISTER(target,p,regnum) do {    \
+    uint8_t *_p = (uint8_t*) p;              \
+    uint64_t _byte = (regnum*HLL_BITS) >> 3; \
+    uint64_t _fb = regnum*HLL_BITS&7; \
+    uint64_t _fb8 = 8 - _fb; \
+    uint64_t b0 = _p[_byte]; \
+    uint64_t b1 = _p[_byte+1]; \
+    target = ((b0 >> _fb) | (b1 << _fb8)) & HLL_REGISTER_MAX; \
+} while(0)
+
+/* Set the value of the register at position 'regnum' to 'val'.
+ * 'p' is an array of unsigned bytes. */
+#define HLL_DENSE_SET_REGISTER(p,regnum,val) do { \
+    uint8_t *_p = (uint8_t*) p;         \
+    uint64_t _byte = ((regnum)*HLL_BITS) >> 3; \
+    uint64_t _fb = (regnum)*HLL_BITS&7; \
+    uint64_t _fb8 = 8 - _fb; \
+    uint64_t _v = (val); \
+    _p[_byte] &= ~(HLL_REGISTER_MAX << _fb); \
+    _p[_byte] |= _v << _fb; \
+    _p[_byte+1] &= ~(HLL_REGISTER_MAX >> _fb8); \
+    _p[_byte+1] |= _v >> _fb8; \
+} while(0)
+
 
 uint64_t ref_murmur64a (const void * key, const uint32_t len, const uint32_t seed) {
     const uint64_t m = 0xc6a4a7935bd1e995;
