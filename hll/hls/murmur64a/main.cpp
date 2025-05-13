@@ -4,15 +4,74 @@
 #include "ap_int.h"
 
 uint8_t count_zll(const ap_uint<64> data) {
-    uint8_t count = 0;
-    for (uint8_t i = 0; i < 64; i++) {
-#pragma HLS UNROLL
-        if (data[i]) {
-            count = i;
-            break;
-        }
-    }
-    return count;
+#pragma HLS INTERFACE ap_ctrl_none port=return
+#pragma HLS INTERFACE ap_none port=data
+#pragma HLS INLINE
+COUNT_ZLL:
+    return data[0] ? 0 :
+    data[1] ? 1 :
+    data[2] ? 2 :
+    data[3] ? 3 :
+    data[4] ? 4 :
+    data[5] ? 5 :
+    data[6] ? 6 :
+    data[7] ? 7 :
+    data[8] ? 8 :
+    data[9] ? 9 :
+    data[10] ? 10 :
+    data[11] ? 11 :
+    data[12] ? 12 :
+    data[13] ? 13 :
+    data[14] ? 14 :
+    data[15] ? 15 :
+    data[16] ? 16 :
+    data[17] ? 17 :
+    data[18] ? 18 :
+    data[19] ? 19 :
+    data[20] ? 20 :
+    data[21] ? 21 :
+    data[22] ? 22 :
+    data[23] ? 23 :
+    data[24] ? 24 :
+    data[25] ? 25 :
+    data[26] ? 26 :
+    data[27] ? 27 :
+    data[28] ? 28 :
+    data[29] ? 29 :
+    data[30] ? 30 :
+    data[31] ? 31 :
+    data[32] ? 32 :
+    data[33] ? 33 :
+    data[34] ? 34 :
+    data[35] ? 35 :
+    data[36] ? 36 :
+    data[37] ? 37 :
+    data[38] ? 38 :
+    data[39] ? 39 :
+    data[40] ? 40 :
+    data[41] ? 41 :
+    data[42] ? 42 :
+    data[43] ? 43 :
+    data[44] ? 44 :
+    data[45] ? 45 :
+    data[46] ? 46 :
+    data[47] ? 47 :
+    data[48] ? 48 :
+    data[49] ? 49 :
+    data[50] ? 50 :
+    data[51] ? 51 :
+    data[52] ? 52 :
+    data[53] ? 53 :
+    data[54] ? 54 :
+    data[55] ? 55 :
+    data[56] ? 56 :
+    data[57] ? 57 :
+    data[58] ? 58 :
+    data[59] ? 59 :
+    data[60] ? 60 :
+    data[61] ? 61 :
+    data[62] ? 62 :
+    data[63] ? 63 : 0;
 }
 
 void hllPatLen(ap_uint<8> *data, const uint32_t len, uint64_t *idx, uint8_t *ret) {
