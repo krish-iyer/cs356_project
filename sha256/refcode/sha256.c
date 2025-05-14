@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 #define uchar unsigned char
 #define uint unsigned int
 
@@ -165,7 +165,20 @@ char* SHA256(char* data) {
 }
 
 int main (){
-    char *data = "hello world!";
+    char *data = "h";
+    char *hash = (char*)malloc(65);
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    hash = SHA256(data);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    long sec = end.tv_sec - start.tv_sec;
+    long nsec = end.tv_nsec - start.tv_nsec;
+    double msec = sec*1000000.0 + nsec/1000.0;
+    printf("total exec: %lf\n",msec);
+
+
     printf("hash: %s\n",SHA256(data));
     return 0;
 }

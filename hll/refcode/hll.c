@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include <time.h>
 
 struct hllhdr {
     char magic[4];      /* "HYLL" */
@@ -449,6 +450,8 @@ int main() {
     robj *o;
     uint8_t bytecounters[HLL_REGISTERS];
 
+    struct timespec start, end;
+
     /* Test 1: access registers.
      * The test is conceived to test that the different counters of our data
      * structure are accessible and that setting their values both result in
@@ -493,10 +496,17 @@ int main() {
 
     long idx;
 
-    for (int i =0;i<10; i++)
-        hllDenseAdd(hdr->registers,(unsigned char*)&ele[i],sizeof(ele[i]));
+
+    //for (int i =0;i<10; i++)
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    hllDenseAdd(hdr->registers,(unsigned char*)&ele[0],sizeof(ele[0]));
 
     uint64_t cardin = hllCount(hdr, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    long sec = end.tv_sec - start.tv_sec;
+    long nsec = end.tv_nsec - start.tv_nsec;
+    double msec = sec*1000000.0 + nsec/1000.0;
+    printf("total exec: %lf\n",msec);
     printf("cardinality: %d \n", cardin);
 
     printf("Tests succeeded\n");
