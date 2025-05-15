@@ -4,7 +4,6 @@
 
 #include <ap_int.h>
 #include <hls_stream.h>
-#include <stdio.h>
 
 void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t>& to_sha256, hls::stream<stream_t>& to_hll) {
 #pragma HLS INTERFACE m_axi port=req_frm_dram offset=slave bundle=DRAM depth=1024
@@ -57,7 +56,6 @@ void store(volatile uint8_t* dram_out, hls::stream<stream_t>& sha256_in, hls::st
     while (1) {
 #pragma HLS PIPELINE
         if (!sha256_in.empty()) { // SHA256
-        	printf("received something in the sha256\n");
             stream_t in = sha256_in.read();
             ap_uint<256> hash = in(255, 0);
             *out_ptr = 0; // function id

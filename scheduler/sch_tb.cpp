@@ -17,48 +17,48 @@
 typedef ap_uint<STREAM_WIDTH> stream_t;
 
 void test_fetch(){
-		uint8_t *dram = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
-	    uint64_t dram_addr = 0;
+    uint8_t *dram = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
+    uint64_t dram_addr = 0;
 
-	    hls::stream<stream_t> sha256_out;
-	    hls::stream<stream_t> hll_out;
+    hls::stream<stream_t> sha256_out;
+    hls::stream<stream_t> hll_out;
 
-	    std::cout << "Starting SHA256 test..." << std::endl;
+    std::cout << "Starting SHA256 test..." << std::endl;
 
-	    dram[0] = 0;
-	    *(uint16_t*)&dram[1] = 64;
-	    uint8_t* req =  (uint8_t*)&dram[3];
-	    for(int i=0;i<64;i++){
-	        req[i] = 0xff;
-	    }
+    dram[0] = 0;
+    *(uint16_t*)&dram[1] = 64;
+    uint8_t* req =  (uint8_t*)&dram[3];
+    for(int i=0;i<64;i++){
+        req[i] = 0xff;
+    }
 
-	    fetcher(dram, sha256_out, hll_out);
+    fetcher(dram, sha256_out, hll_out);
 
-	    if (!sha256_out.empty()) {
-	        stream_t out = sha256_out.read();
+    if (!sha256_out.empty()) {
+        stream_t out = sha256_out.read();
 
-	        ap_uint<512> hash_bits = out(511, 0); // Extract 256-bit hash
-	        uint8_t hash[64];
+        ap_uint<512> hash_bits = out(511, 0); // Extract 256-bit hash
+        uint8_t hash[64];
 
-	        for (int i = 0; i < 64; i++) {
-	            hash[i] = hash_bits(i*8+8-1, i*8); // MSB first
-	        }
+        for (int i = 0; i < 64; i++) {
+            hash[i] = hash_bits(i*8+8-1, i*8); // MSB first
+        }
 
-	        std::printf("SHA256 hash: 0x");
-	        for (int i = 0; i < 32; i++) {
-	            std::printf("%02x", hash[i]); // Two-digit hex
-	        }
-	        std::printf("\n");
-	        if (hash == 0) {
-	            std::cout << "SHA256 test PASSED" << std::endl;
-	        } else {
-	            std::cout << "SHA256 test FAILED" << std::endl;
-	        }
-	    } else {
-	        std::cout << "SHA256 test FAILED: No output" << std::endl;
-	    }
+        std::printf("SHA256 hash: 0x");
+        for (int i = 0; i < 32; i++) {
+            std::printf("%02x", hash[i]); // Two-digit hex
+        }
+        std::printf("\n");
+        if (hash == 0) {
+            std::cout << "SHA256 test PASSED" << std::endl;
+        } else {
+            std::cout << "SHA256 test FAILED" << std::endl;
+        }
+    } else {
+        std::cout << "SHA256 test FAILED: No output" << std::endl;
+    }
 
-	    free(dram);
+    free(dram);
 }
 
 void test_store() {
@@ -74,7 +74,7 @@ void test_store() {
     hls::stream<stream_t> hll_in;
 
     std::thread store_thread([&]() {
-    	store(dram, sha256_in, hll_in);
+        store(dram, sha256_in, hll_in);
     });
 
     stream_t sha256_data = 0;
@@ -108,8 +108,8 @@ void test_store() {
 
 int main() {
 
-	test_fetch();
-	test_store();
+    test_fetch();
+    test_store();
 
     std::cout << "Simulation complete" << std::endl;
     return 0;
