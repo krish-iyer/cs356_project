@@ -6,7 +6,7 @@
 #include "ap_axi_sdata.h"
 
 #define STREAM_WIDTH 512
-#define PAYLOAD_SIZE 48
+#define PAYLOAD_SIZE 64
 
 typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
 

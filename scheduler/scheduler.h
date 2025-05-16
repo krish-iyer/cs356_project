@@ -4,6 +4,7 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 #include "ap_axi_sdata.h"
+#include <stdint.h>
 
 #define STREAM_WIDTH 512
 #define HDR_SIZE 16
