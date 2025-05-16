@@ -1,5 +1,5 @@
 #include "sha256.h"
-
+#include "stdio.h"
 typedef struct {
     uint8_t data[64];
     uint32_t datalen;
@@ -143,25 +143,51 @@ void sha256_final(sha256_ctx *ctx, uint8_t hash[32])
     }
 }
 
-void sha256(const char *data, const uint32_t len, uint8_t hash[32]){
+void sha256(hls::stream<stream_t>&in, hls::stream<stream_t>&out){
 
-#pragma HLS INTERFACE m_axi port = data depth = 256
-#pragma HLS INTERFACE s_axilite port = hash //depth = 256
-#pragma HLS INTERFACE s_axilite port = len
-#pragma HLS INTERFACE s_axilite port = return
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
+#pragma HLS INTERFACE s_axilite port=return
 
     sha256_ctx ctx;
 #pragma HLS ARRAY_PARTITION variable=ctx.state type=complete
     uint8_t hash_int[32];
 #pragma HLS ARRAY_PARTITION variable=hash_int type=complete
     sha256_init(&ctx);
-    for(uint32_t i=0 ; i< len;i++){
-        sha256_update(&ctx, (uint8_t)data[i]);
+
+    bool done = false;
+    while (!done) {
+#pragma HLS PIPELINE
+        stream_t transfer;
+        in.read(transfer);
+        uint32_t bytes_processed = 0;
+        if (transfer.last == 0) {
+            for (int i = 0; i < STREAM_WIDTH/8; i++) {
+#pragma HLS UNROLL
+                uint8_t byte = transfer.data(i*8 + 7, i*8);
+                sha256_update(&ctx, byte);
+                bytes_processed++;
+            }
+        } else {
+        	printf("tlast is high\n");
+            uint32_t bytes_to_process = transfer.keep;
+            for (int i = 0; i < bytes_to_process; i++) {
+#pragma HLS UNROLL
+                uint8_t byte = transfer.data(i*8 + 7, i*8);
+                sha256_update(&ctx, byte);
+            }
+            done = true;
+        }
     }
+
     sha256_final(&ctx, hash_int);
 
-    for(uint8_t j=0 ; j<32 ;j++){
+    stream_t output;
+    output.data = 0;
+    for (int i = 0; i < 32; i++) {
 #pragma HLS UNROLL
-        hash[j] = hash_int[j];
+        output.data(i*8+7, i*8) = hash_int[i];
     }
+    output.last = 1;
+    out.write(output);
 }

@@ -2,6 +2,13 @@
 #define SHA256_H_
 
 #include <stdint.h>
+#include <hls_stream.h>
+#include "ap_axi_sdata.h"
+
+#define STREAM_WIDTH 512
+#define PAYLOAD_SIZE 48
+
+typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
 
 #define DBL_INT_ADD(a,b,c) if (a > 0xffffffff - (c)) ++b; a += c;
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -14,6 +21,6 @@
 #define SIG0(x) (ROTRIGHT(x,7) ^ ROTRIGHT(x,18) ^ ((x) >> 3))
 #define SIG1(x) (ROTRIGHT(x,17) ^ ROTRIGHT(x,19) ^ ((x) >> 10))
 
-void sha256(const char *data, const uint32_t len, uint8_t *hash);
+void sha256(hls::stream<stream_t>&in, hls::stream<stream_t>&out);
 
 #endif // SHA256_H_
