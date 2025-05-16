@@ -14,7 +14,7 @@
 #define PAYLOAD_SIZE 48
 #define DRAM_SIZE 256
 
-typedef ap_uint<STREAM_WIDTH> stream_t;
+typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
 
 void test_fetch(){
     uint8_t *dram = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
@@ -37,7 +37,7 @@ void test_fetch(){
     if (!sha256_out.empty()) {
         stream_t out = sha256_out.read();
 
-        ap_uint<512> hash_bits = out(511, 0); // Extract 256-bit hash
+        ap_uint<512> hash_bits = out.data(511, 0); // Extract 256-bit hash
         uint8_t hash[64];
 
         for (int i = 0; i < 64; i++) {
@@ -77,11 +77,11 @@ void test_store() {
         store(dram, sha256_in, hll_in);
     });
 
-    stream_t sha256_data = 0;
+    stream_t sha256_data;
     ap_uint<256> test_hash = ap_uint<256>("0x3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea");
     ap_uint<256> ex_test_hash = ap_uint<256>("0x79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea00");
 
-    sha256_data(255, 0) = test_hash;
+    sha256_data.data(255, 0) = test_hash;
     sha256_in.write(sha256_data);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
