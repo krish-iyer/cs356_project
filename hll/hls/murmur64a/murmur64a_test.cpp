@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <thread>
 
 #define HLL_DENSE_GET_REGISTER(target,p,regnum) do {    \
     uint8_t *_p = (uint8_t*) p;              \
@@ -201,73 +202,51 @@ int main() {
     //uint8_t *data;
 
     uint64_t hls_idx = 0, ref_idx = 0;
-    uint8_t *hls_registers = (uint8_t*)malloc(16384);
-    uint8_t *ref_registers = (uint8_t*)malloc(16384);
-
-    for (uint32_t i=8; i< arr_len ; i++){
-
-        //data = create_rand_arr(i, 1, 255);
-        uint8_t data[10] = {1,2,3,4,5,6,7,9,7,7};
-        uint32_t len[10] = {1,1,1,1,1,1,1,1,1,1};
-        uint64_t hls_data[10*8];
-
-        for (int j=0; j<10;j++){
-            hls_data[j*8] = data[j];
-            for (int k=0;k<7;k++)
-                hls_data[j*k] = 0;
-        }
-        uint32_t seed = 0xadc83b19ULL;
-
-        // uint64_t hls_ret = murmur64a((ap_uint<8> *)data, i, seed);
-        // uint64_t ref_ret = ref_murmur64a(data, i, seed);
-
-        //uint32_t hls_ret = hllPatLen((ap_uint<8> *)data, i, &idx);
-        //uint32_t ref_ret = ref_hllpatlen(data, i, &idx);
-        uint64_t hls_ret;
-
-        hllCompute((ap_uint<8>*)&data, len, 10, &hls_ret);
-
-        for(int i=0;i<10;i++){
-            ref_hllDenseAdd(ref_registers, (uint8_t*)&data[i], 1);
-        }
-
-        //uint64_t hls_ret = hllCount(hls_registers);
-        uint64_t ref_ret = ref_hllCount(ref_registers);
-
-        uint8_t data_2[10] = {11,12,13,14,15,16,17,19,10,10};
-
-        for (int j=0; j<10;j++){
-            hls_data[j*8] = data_2[j];
-            for (int k=0;k<7;k++)
-                hls_data[j*k] = 0;
-        }
-        hllCompute((ap_uint<8>*)&data_2, len, 10, &hls_ret);
-
-        for(int i=0;i<10;i++){
-            ref_hllDenseAdd(ref_registers, (uint8_t*)&data_2[i], 1);
-        }
-
-        //hls_ret = hllCount(hls_registers);
-        ref_ret = ref_hllCount(ref_registers);
+    //uint8_t *hls_registers = (uint8_t*)malloc(16384);
+    //uint8_t *ref_registers = (uint8_t*)malloc(16384);
 
 
-        if (hls_ret != ref_ret){
-            printf("hls hash doesn't match ref hash\n");
-            printf("[ERROR]hls_ret: %lu ref_ret: %lu itr: %d\n", \
-                   hls_ret,                                      \
-                   ref_ret,                                      \
-                   i );
+    uint8_t data[4] = {1,2,3,3};
+    uint32_t len[4] = {1,1,1,1};
 
-            printf("Array\n");
-            for(int j=0;j <= i;j++)
-                printf("%d ",data[j]);
+    hls::stream<stream_t> in_stream;
+    hls::stream<stream_t> out_stream;
 
-            printf("\n");
-            //free(data);
-            break;
-        }
-        //free(data);
-        printf("[INFO] hls_ret: %lu ref_ret: %lu\n",hls_ret, ref_ret);
+    std::thread store_thread([&]() {
+        hllCompute(in_stream, out_stream);
+    });
+
+
+    uint32_t seed = 0xadc83b19ULL;
+
+    uint64_t hls_ret;
+
+    uint32_t offset = 16;
+    stream_t transfer;
+
+    transfer.data = 0;
+    transfer.data(7,0) = 4*8+2;
+    transfer.data(15,8) = 4;
+    for (int i=0;i<4;i++){
+        transfer.data(i*64+63+offset, i*64+offset) = (uint64_t)data[i];
+    }
+
+    offset += 4*64;
+
+    for (int i=0;i<4;i++){
+        transfer.data(i*8+7+offset, i*8+offset) = len[i];
+    }
+
+    transfer.last = 1;
+    transfer.keep = -1;
+    in_stream.write(transfer);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    uint64_t count;
+    if (!out_stream.empty()) {
+        stream_t hll_str = out_stream.read();
+        count = hll_str.data(63, 0);
+        printf("dist count: %ld\n", count);
     }
 
     return 0;

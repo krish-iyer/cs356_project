@@ -233,21 +233,57 @@ void hllAdd(ap_uint<6> *registers, ap_uint<8> *data, const uint32_t len) {
     hllSet(registers, idx, count, &ret);
 }
 
-void hllCompute(ap_uint<8> *data, const uint32_t *len, const uint32_t num_ele, uint64_t *count) {
-#pragma HLS INTERFACE m_axi port=data depth=256
-#pragma HLS INTERFACE m_axi port=len depth=256
-#pragma HLS INTERFACE s_axilite port=count
-#pragma HLS INTERFACE s_axilite port=num_ele
+void hllCompute(hls::stream<stream_t> &in, hls::stream<stream_t> &out) {
+
+#pragma HLS INTERFACE axis port=in
+#pragma HLS INTERFACE axis port=out
 #pragma HLS INTERFACE s_axilite port=return
+
+    uint64_t count = 0;
 
     static ap_uint<6> registers[HLL_REGISTERS];
 #pragma HLS ARRAY_PARTITION variable=registers type=cyclic factor=32 dim=1
 
-LOOP_ELE:
-    for (uint32_t i = 0; i < num_ele; i++) {
-        hllAdd(registers, data, len[i]);
-        data += len[i];
+    bool done = false;
+    while(!done){
+        stream_t transfer;
+        in.read(transfer);
+        uint32_t bytes_processed = 0;
+        uint8_t len_mark = transfer.data(7, 0);
+        uint8_t num_ele = transfer.data(15, 8);
+
+        uint8_t req[64];
+        ap_uint<8> data[32];
+        uint8_t len[32];
+
+        for (uint8_t i=0; i < STREAM_WIDTH/8; i++){
+            req[i] = transfer.data(i*8+7, i*8);
+        }
+
+        for (uint8_t i=2; i < len_mark;i++){
+            data[i-2] = ap_uint<8>(req[i]);
+        }
+
+        for (uint8_t i=len_mark; i < STREAM_WIDTH/8;i++){
+            len[i-len_mark] = req[i];
+        }
+
+        uint8_t idx = 0;
+        for (uint32_t i = 0; i < num_ele; i++) {
+            hllAdd(registers, &data[idx], len[i]);
+                idx += len[i] * 8;
+        }
+
+        if (transfer.last == 1) {
+            done = true;
+        }
     }
 
-    hllCount(registers, count);
+    hllCount(registers, &count);
+
+    stream_t output;
+    output.data(63, 0) = count;
+    output.last = 1;
+    out.write(output);
+
 }
