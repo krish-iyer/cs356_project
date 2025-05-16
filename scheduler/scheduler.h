@@ -7,7 +7,7 @@
 
 #define STREAM_WIDTH 512
 #define HDR_SIZE 16
-#define PAYLOAD_SIZE 48//((STREAM_WIDTH/8) - HDR_SIZE)
+#define PAYLOAD_SIZE 64//((STREAM_WIDTH/8) - HDR_SIZE)
 
 typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
 
