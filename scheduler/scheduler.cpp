@@ -76,8 +76,8 @@ void store(volatile uint8_t* dram_out, hls::stream<stream_t>& sha256_in, hls::st
 }
 
 void top(volatile uint8_t* req_frm_dram, volatile uint8_t* dram_out) {
-#pragma HLS INTERFACE m_axi port=req_frm_dram offset=slave bundle=DRAM_IN depth=1024
-#pragma HLS INTERFACE m_axi port=dram_out offset=slave bundle=DRAM_OUT depth=1024
+#pragma HLS INTERFACE m_axi port=req_frm_dram depth=256
+#pragma HLS INTERFACE m_axi port=dram_out depth=256
 #pragma HLS INTERFACE s_axilite port=return
 
     hls::stream<stream_t> to_sha256;
@@ -85,10 +85,10 @@ void top(volatile uint8_t* req_frm_dram, volatile uint8_t* dram_out) {
     hls::stream<stream_t> sha256_out;
     hls::stream<stream_t> hll_out;
 
-#pragma HLS STREAM variable=to_sha256 depth=16
-#pragma HLS STREAM variable=to_hll depth=16
-#pragma HLS STREAM variable=sha256_out depth=16
-#pragma HLS STREAM variable=hll_out depth=16
+#pragma HLS STREAM variable=to_sha256 depth=8
+#pragma HLS STREAM variable=to_hll depth=8
+#pragma HLS STREAM variable=sha256_out depth=8
+#pragma HLS STREAM variable=hll_out depth=8
 
     fetcher(req_frm_dram, to_sha256, to_hll);
     sha256(to_sha256, sha256_out);
