@@ -30,7 +30,7 @@ void ref_sha256(const char *input, uint32_t len, unsigned char* hash) {
     SHA256_Final(hash, &sha256);
 }
 
-void test_top(){
+void test_top_sha256(){
     uint8_t *dram_in = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
     uint8_t *dram_out = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
 
@@ -95,6 +95,70 @@ void test_top(){
             goto cleanup;
         }
     }
+
+    printf("Test passed!\n");
+
+cleanup:
+    printf("");
+
+    free(dram_in);
+    free(dram_out);
+
+
+
+}
+
+void test_top_hll(){
+    uint8_t *dram_in = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
+    uint8_t *dram_out = (uint8_t*) malloc(DRAM_SIZE*sizeof(uint8_t));
+
+    uint8_t data[4] = {1,2,3,3};
+    uint8_t len[4] = {1,1,1,1};
+
+    req_ctx hll_req;
+    hll_req.func_id = 1;
+    hll_req.req_len = 38;
+    hll_req.req = (uint8_t*) malloc(38*sizeof(uint8_t));
+
+    hll_req.req[0] = 34;
+    hll_req.req[1] = 4;
+
+    uint64_t *data_ptr = (uint64_t*)&hll_req.req[2];
+
+    for(int i=0;i<4 ;i++){
+        data_ptr[i] = data[i];
+    }
+
+    uint8_t *len_ptr = (uint8_t*)&hll_req.req[34];
+
+    for(int i=0;i<4 ;i++){
+        len_ptr[i] = len[i];
+    }
+
+    for(int i=0;i<38;i++){
+        printf("req[%d]: %d\n",i, hll_req.req[i]);
+    }
+
+
+    dram_in[0] = hll_req.func_id;
+    dram_in[1] = hll_req.req_len;
+
+    uint8_t *dram_req_ptr = &dram_in[3];
+
+    memcpy(dram_req_ptr, hll_req.req, hll_req.req_len);
+   std::thread store_thread([&]() {
+       top(dram_in, dram_out);
+   });
+
+    //});
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    std::printf("dist count: 0x");
+    for (int i = 0; i < 5; i++) {
+        std::printf("%02x", dram_out[i]);
+    }
+    std::printf("\n");
+
 
     printf("Test passed!\n");
 
@@ -202,7 +266,8 @@ int main() {
 
     //test_fetch();
     //test_store();
-    test_top();
+    //test_top_sha256();
+    test_top_hll();
 
     std::cout << "Simulation complete" << std::endl;
     return 0;

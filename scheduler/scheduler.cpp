@@ -96,6 +96,6 @@ void top(volatile uint8_t* req_frm_dram, volatile uint8_t* dram_out) {
 
     fetcher(req_frm_dram, to_sha256, to_hll);
     sha256(to_sha256, sha256_out);
-    //hllCompute(to_hll, hll_out);
+    hllCompute(to_hll, hll_out);
     store(dram_out, sha256_out, hll_out);
 }
