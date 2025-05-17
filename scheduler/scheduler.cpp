@@ -4,7 +4,7 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 
-void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t>& to_sha256, hls::stream<stream_t>& to_hll) {
+void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, hls::stream<stream_t> &to_hll) {
 #pragma HLS INTERFACE m_axi port=req_frm_dram offset=slave bundle=DRAM depth=1024
 #pragma HLS INTERFACE axis port=to_sha256
 #pragma HLS INTERFACE axis port=to_hll
@@ -65,8 +65,8 @@ void store(volatile uint8_t* dram_out, hls::stream<stream_t>& sha256_in, hls::st
             *(out_ptr + i) = hash(i*8 + 7, i*8);
         }
         out_ptr += 32;
-
-    } else if (!hll_in.empty()) { // HLL
+    }
+    if (!hll_in.empty()) { // HLL
         stream_t in = hll_in.read();
         ap_uint<32> cardinality = in.data(31, 0);
         *out_ptr = 1;

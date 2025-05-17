@@ -146,12 +146,12 @@ void test_top_hll(){
     uint8_t *dram_req_ptr = &dram_in[3];
 
     memcpy(dram_req_ptr, hll_req.req, hll_req.req_len);
-   std::thread store_thread([&]() {
+    std::thread store_thread([&]() {
        top(dram_in, dram_out);
-   });
+    });
 
     //});
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
     std::printf("dist count: 0x");
     for (int i = 0; i < 5; i++) {
