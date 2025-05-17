@@ -4,12 +4,7 @@
 #include <stdint.h>
 #include <ap_int.h>
 #include <hls_stream.h>
-#include "ap_axi_sdata.h"
-
-#define STREAM_WIDTH 512
-#define PAYLOAD_SIZE 64
-
-typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
+#include "../../../scheduler/defines.h"
 
 #define HLL_P 10 /* The greater is P, the smaller the error. */
 #define HLL_Q (64-HLL_P) /* The number of bits of the hash value used for determining the number of leading zeros. */

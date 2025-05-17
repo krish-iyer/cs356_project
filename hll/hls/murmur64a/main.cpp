@@ -245,8 +245,9 @@ void hllCompute(hls::stream<stream_t> &in, hls::stream<stream_t> &out) {
 #pragma HLS ARRAY_PARTITION variable=registers type=cyclic factor=32 dim=1
 
     bool done = false;
-    while(!done){
-        stream_t transfer;
+    //while(!done){
+    stream_t transfer;
+    if(!in.empty()){
         in.read(transfer);
         uint32_t bytes_processed = 0;
         uint8_t len_mark = transfer.data(7, 0);
@@ -257,6 +258,7 @@ void hllCompute(hls::stream<stream_t> &in, hls::stream<stream_t> &out) {
         uint8_t len[32];
 
         for (uint8_t i=0; i < STREAM_WIDTH/8; i++){
+#pragma HLS UNROLL
             req[i] = transfer.data(i*8+7, i*8);
         }
 
@@ -271,19 +273,19 @@ void hllCompute(hls::stream<stream_t> &in, hls::stream<stream_t> &out) {
         uint8_t idx = 0;
         for (uint32_t i = 0; i < num_ele; i++) {
             hllAdd(registers, &data[idx], len[i]);
-                idx += len[i] * 8;
+            idx += len[i] * 8;
         }
 
         if (transfer.last == 1) {
             done = true;
         }
+//}
+
+        hllCount(registers, &count);
+
+        stream_t output;
+        output.data(63, 0) = count;
+        output.last = 1;
+        out.write(output);
     }
-
-    hllCount(registers, &count);
-
-    stream_t output;
-    output.data(63, 0) = count;
-    output.last = 1;
-    out.write(output);
-
 }

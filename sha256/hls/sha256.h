@@ -3,12 +3,7 @@
 
 #include <stdint.h>
 #include <hls_stream.h>
-#include "ap_axi_sdata.h"
-
-#define STREAM_WIDTH 512
-#define PAYLOAD_SIZE 64
-
-typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
+#include "../../scheduler/defines.h"
 
 #define DBL_INT_ADD(a,b,c) if (a > 0xffffffff - (c)) ++b; a += c;
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))

@@ -5,7 +5,7 @@
 #include <hls_stream.h>
 
 void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, hls::stream<stream_t> &to_hll) {
-#pragma HLS INTERFACE m_axi port=req_frm_dram offset=slave bundle=DRAM depth=1024
+#pragma HLS INTERFACE m_axi port=req_frm_dram depth=256
 #pragma HLS INTERFACE axis port=to_sha256
 #pragma HLS INTERFACE axis port=to_hll
 #pragma HLS INTERFACE s_axilite port=return
@@ -21,13 +21,11 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
         uint16_t offset = 0;
 
         while (bytes_remaining > 0) {
-#pragma HLS PIPELINE
             transfer.data = 0;
             transfer.last = 0;
             uint16_t payload_bytes = (bytes_remaining > PAYLOAD_SIZE) ? PAYLOAD_SIZE : bytes_remaining;
             if (func_id == 0) { // SHA256
                 for (int i = 0; i < payload_bytes; i++) {
-    #pragma HLS UNROLL
                     transfer.data(i*8 + 7, i*8) = *(req_ptr + offset + i);
                 }
                 transfer.last = (bytes_remaining <= PAYLOAD_SIZE) ? 1 : 0;
@@ -35,7 +33,6 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
                 to_sha256.write(transfer);
             } else if (func_id == 1) { // HLL
                 for (int i = 0; i < payload_bytes; i++) {
-    #pragma HLS UNROLL
                     transfer.data(i*8 + 7, i*8) = *(req_ptr + offset + i);
                 }
                 transfer.last = (bytes_remaining <= PAYLOAD_SIZE) ? 1 : 0;
@@ -48,13 +45,12 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
 }
 
 void store(volatile uint8_t* dram_out, hls::stream<stream_t>& sha256_in, hls::stream<stream_t>& hll_in) {
-#pragma HLS INTERFACE m_axi port=dram_out offset=slave bundle=DRAM_OUT depth=1024
+#pragma HLS INTERFACE m_axi port=dram_out depth=256
 #pragma HLS INTERFACE axis port=sha256_in
 #pragma HLS INTERFACE axis port=hll_in
 #pragma HLS INTERFACE s_axilite port=return
 
     volatile uint8_t *out_ptr = dram_out;
-#pragma HLS PIPELINE
     if (!sha256_in.empty()) { // SHA256
         stream_t in = sha256_in.read();
         ap_uint<256> hash = in.data(255, 0);

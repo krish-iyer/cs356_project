@@ -9,10 +9,8 @@
 #include <stdio.h>
 #include <thread>
 #include <openssl/sha.h>
+#include "defines.h"
 
-#define STREAM_WIDTH 512
-#define HDR_SIZE 16
-#define PAYLOAD_SIZE 48
 #define DRAM_SIZE 256
 
 typedef struct {
@@ -21,7 +19,6 @@ typedef struct {
     uint8_t *req;
 }__attribute__((packed, aligned(1))) req_ctx;
 
-typedef ap_axiu<STREAM_WIDTH, 1, 1, 1> stream_t;
 
 void ref_sha256(const char *input, uint32_t len, unsigned char* hash) {
     SHA256_CTX sha256;
@@ -42,10 +39,7 @@ void test_top_sha256(){
     sha256_req.req = (uint8_t*) malloc(13*sizeof(uint8_t));
 
     char hash_str[13] = "hello world!";
-    printf("Hash in str: 0x");
-    for (int i = 0; i < sha256_req.req_len; i++) {
-        printf("%02x", hash_str[i]); // Two-digit hex
-    }
+
     for (int i=0;i<12;i++){
         sha256_req.req[i] =  hash_str[i];
     }
@@ -66,11 +60,11 @@ void test_top_sha256(){
     //});
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-    std::printf("hls_hash: 0x");
+    printf("hls_hash: 0x");
     for (int i = 0; i < 33; i++) {
-        std::printf("%02x", dram_out[i]);
+        printf("%x", dram_out[i]);
     }
-    std::printf("\n");
+    printf("\n");
 
     uint8_t ref_hash[32];
     ref_sha256(data_ref, 12, ref_hash);
@@ -135,10 +129,6 @@ void test_top_hll(){
         len_ptr[i] = len[i];
     }
 
-    for(int i=0;i<38;i++){
-        printf("req[%d]: %d\n",i, hll_req.req[i]);
-    }
-
 
     dram_in[0] = hll_req.func_id;
     dram_in[1] = hll_req.req_len;
@@ -146,18 +136,18 @@ void test_top_hll(){
     uint8_t *dram_req_ptr = &dram_in[3];
 
     memcpy(dram_req_ptr, hll_req.req, hll_req.req_len);
-    std::thread store_thread([&]() {
-       top(dram_in, dram_out);
-    });
+    //std::thread store_thread([&]() {
+    top(dram_in, dram_out);
+    //});
 
     //});
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
-    std::printf("dist count: 0x");
-    for (int i = 0; i < 5; i++) {
-        std::printf("%02x", dram_out[i]);
+    if (dram_out[0] == 1){
+        printf("function id is verified to be HLL\n");
     }
-    std::printf("\n");
+    printf("dist count: %d\n", dram_out[1]);
+
+    printf("\n");
 
 
     printf("Test passed!\n");
@@ -200,11 +190,11 @@ void test_fetch(){
             hash[i] = hash_bits(i*8+8-1, i*8); // MSB first
         }
 
-        std::printf("SHA256 hash: 0x");
+        printf("SHA256 hash: 0x");
         for (int i = 0; i < 32; i++) {
-            std::printf("%02x", hash[i]); // Two-digit hex
+            printf("%02x", hash[i]); // Two-digit hex
         }
-        std::printf("\n");
+        printf("\n");
         if (hash == 0) {
             std::cout << "SHA256 test PASSED" << std::endl;
         } else {
@@ -246,11 +236,11 @@ void test_store() {
     for (int i = 0; i < 32; i++) {
         hash_bits(i*8 + 7, i*8) = dram[i];
     }
-    std::printf("SHA256 hash: 0x");
+    printf("SHA256 hash: 0x");
     for (int i = 0; i < 32; i++) {
-        std::printf("%02x", dram[i]);
+        printf("%02x", dram[i]);
     }
-    std::printf("\n");
+    printf("\n");
     if (hash_bits == ex_test_hash) {
         std::cout << "SHA256 store test PASSED" << std::endl;
     } else {

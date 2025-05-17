@@ -156,9 +156,9 @@ void sha256(hls::stream<stream_t>&in, hls::stream<stream_t>&out){
     sha256_init(&ctx);
 
     bool done = false;
-    while (!done) {
-#pragma HLS PIPELINE
-        stream_t transfer;
+    //while (!done) {
+    stream_t transfer;
+    if (!in.empty()){
         in.read(transfer);
         uint32_t bytes_processed = 0;
         if (transfer.last == 0) {
@@ -169,25 +169,25 @@ void sha256(hls::stream<stream_t>&in, hls::stream<stream_t>&out){
                 bytes_processed++;
             }
         } else {
-        	printf("tlast is high\n");
             uint32_t bytes_to_process = transfer.keep;
             for (int i = 0; i < bytes_to_process; i++) {
-#pragma HLS UNROLL
                 uint8_t byte = transfer.data(i*8 + 7, i*8);
                 sha256_update(&ctx, byte);
             }
             done = true;
         }
-    }
 
-    sha256_final(&ctx, hash_int);
+    //}
 
-    stream_t output;
-    output.data = 0;
-    for (int i = 0; i < 32; i++) {
+        sha256_final(&ctx, hash_int);
+
+        stream_t output;
+        output.data = 0;
+        for (int i = 0; i < 32; i++) {
 #pragma HLS UNROLL
-        output.data(i*8+7, i*8) = hash_int[i];
+            output.data(i*8+7, i*8) = hash_int[i];
+        }
+        output.last = 1;
+        out.write(output);
     }
-    output.last = 1;
-    out.write(output);
 }
