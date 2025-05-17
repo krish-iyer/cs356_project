@@ -11,7 +11,7 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
 #pragma HLS INTERFACE s_axilite port=return
 
     uint8_t func_id = req_frm_dram[0];
-    uint16_t req_len = *(uint16_t*)&req_frm_dram[1];
+    uint16_t req_len = (uint16_t)req_frm_dram[1];
     volatile uint8_t *req_ptr = (uint8_t*)&req_frm_dram[3];
 
     if (req_len > 0) {
@@ -20,7 +20,7 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
         uint16_t bytes_remaining = req_len;
         uint16_t offset = 0;
 
-        while (bytes_remaining > 0) {
+        //while (bytes_remaining > 0) {
             transfer.data = 0;
             transfer.last = 0;
             uint16_t payload_bytes = (bytes_remaining > PAYLOAD_SIZE) ? PAYLOAD_SIZE : bytes_remaining;
@@ -40,7 +40,7 @@ void fetcher(volatile uint8_t* req_frm_dram, hls::stream<stream_t> &to_sha256, h
             }
             bytes_remaining -= payload_bytes;
             offset += payload_bytes;
-        }
+            //}
     }
 }
 

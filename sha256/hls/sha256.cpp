@@ -1,5 +1,6 @@
 #include "sha256.h"
 #include "stdio.h"
+
 typedef struct {
     uint8_t data[64];
     uint32_t datalen;
@@ -183,9 +184,11 @@ void sha256(hls::stream<stream_t>&in, hls::stream<stream_t>&out){
 
         stream_t output;
         output.data = 0;
+
         for (int i = 0; i < 32; i++) {
 #pragma HLS UNROLL
             output.data(i*8+7, i*8) = hash_int[i];
+
         }
         output.last = 1;
         out.write(output);

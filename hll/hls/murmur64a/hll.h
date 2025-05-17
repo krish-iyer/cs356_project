@@ -6,7 +6,7 @@
 #include <hls_stream.h>
 #include "../../../scheduler/defines.h"
 
-#define HLL_P 10 /* The greater is P, the smaller the error. */
+#define HLL_P 8 /* The greater is P, the smaller the error. */
 #define HLL_Q (64-HLL_P) /* The number of bits of the hash value used for determining the number of leading zeros. */
 #define HLL_REGISTERS (1<<HLL_P) /* With P=14, 16384 registers. */
 #define HLL_P_MASK (HLL_REGISTERS-1) /* Mask to index register. */
